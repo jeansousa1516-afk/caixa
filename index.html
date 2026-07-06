@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Controle Semanal</title>
+    <title>Painel de Controle Financeiro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -18,8 +18,8 @@
             <div class="bg-white/15 p-4 rounded-3xl mb-4 backdrop-blur-md">
                 <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight mb-2">Meu Caixa Semanal</h1>
-            <p class="text-sm text-indigo-100 mb-4">Gerencie os valores totais através de parcelas semanais</p>
+            <h1 class="text-2xl font-bold tracking-tight mb-2">Meu Caixa Inteligente</h1>
+            <p class="text-sm text-indigo-100 mb-4">Gerencie os valores totais através de parcelas semanais ou mensais</p>
             <div class="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full text-xs font-medium border border-white/20 backdrop-blur-sm">
                 <span class="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span>
                 <span>Guardado e atualizado no telemóvel</span>
@@ -53,7 +53,7 @@
                 </div>
             </div>
             <div class="mt-5 p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl text-center">
-                <span class="text-xs text-slate-400 block mb-1">Seu Compromisso Semanal Total</span>
+                <span class="text-xs text-slate-400 block mb-1">Seu Compromisso Semanal Estimado</span>
                 <span class="text-2xl font-extrabold text-amber-400" id="global_semanal">R$ 0,00</span>
             </div>
         </div>
@@ -76,6 +76,7 @@
         </div>
     </main>
 
+    <!-- Modais -->
     <div id="modal_conta" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-xl">
             <h3 class="text-lg font-bold text-slate-800 mb-4" id="modal_titulo">Adicionar Nova Conta</h3>
@@ -89,8 +90,15 @@
                     <input type="number" id="modal_total" placeholder="0.00" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-slate-500 block mb-1">Prazo (Semanas)</label>
-                    <input type="number" id="modal_semanas" value="52" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+                    <label class="text-xs font-bold text-slate-500 block mb-1">Tipo de Período</label>
+                    <select id="modal_tipo" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+                        <option value="semanal">Semanal</option>
+                        <option value="mensal">Mensal</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1" id="label_prazo">Prazo (Quantidade)</label>
+                    <input type="number" id="modal_prazo" value="12" class="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
                 </div>
             </div>
             <div class="flex gap-3 mt-6">
@@ -131,7 +139,23 @@
         
         function atualizarResumos() {
             let totalGeral = 0, totalPagoGeral = 0, semanalGeral = 0;
-            state.contas.forEach(c => { const valSem = c.total / c.semanasTotais; totalGeral += c.total; totalPagoGeral += (valSem * c.semanasPagas); semanalGeral += valSem; });
+            state.contas.forEach(c => { 
+                const tipo = c.tipo || 'semanal';
+                const totalPrazos = c.semanasTotais; 
+                const pagos = c.semanasPagas;
+                
+                const valorPorPeriodo = c.total / totalPrazos;
+                const valorPago = valorPorPeriodo * pagos;
+                
+                totalGeral += c.total; 
+                totalPagoGeral += valorPago; 
+                
+                if (tipo === 'semanal') {
+                    semanalGeral += valorPorPeriodo;
+                } else {
+                    semanalGeral += (valorPorPeriodo / 4.33); // Converte fração mensal estimada para semanal
+                }
+            });
             const restGeral = totalGeral - totalPagoGeral; const pctGeral = totalGeral > 0 ? Math.round((totalPagoGeral / totalGeral) * 100) : 0;
             document.getElementById('global_total').innerText = formatarMoeda(totalGeral);
             document.getElementById('global_pago').innerText = formatarMoeda(totalPagoGeral);
@@ -145,27 +169,41 @@
             const container = document.getElementById('lista_contas'); container.innerHTML = '';
             if (state.contas.length === 0) { container.innerHTML = '<p class="text-center text-sm text-slate-400 p-8 bg-white rounded-3xl">Clique em "+ Nova Conta" para começar.</p>'; return; }
             state.contas.forEach(c => {
-                const valSem = c.total / c.semanasTotais; const valPago = valSem * c.semanasPagas; const valRest = c.total - valPago; const pct = Math.round((c.semanasPagas / c.semanasTotais) * 100);
+                const tipo = c.tipo || 'semanal';
+                const labelPeriodo = tipo === 'semanal' ? 'Semana' : 'Mês';
+                const labelAbreviado = tipo === 'semanal' ? 'sem' : 'meses';
+
+                const valPeriodo = c.total / c.semanasTotais; 
+                const valPago = valPeriodo * c.semanasPagas; 
+                const valRest = c.total - valPago; 
+                const pct = Math.round((c.semanasPagas / c.semanasTotais) * 100);
+                
                 const card = document.createElement('div'); card.className = "bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-4";
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
-                        <div><h4 class="font-bold text-slate-800">${c.nome}</h4><p class="text-xs text-slate-400">Total: ${formatarMoeda(c.total)} • ${c.semanasTotais} sem</p></div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-slate-800">${c.nome}</h4>
+                                <span class="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${tipo === 'semanal' ? 'bg-indigo-50 text-indigo-600' : 'bg-pink-50 text-pink-600'}">${tipo}</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5">Total: ${formatarMoeda(c.total)} • ${c.semanasTotais} ${labelAbreviado}</p>
+                        </div>
                         <div class="flex gap-2">
-                            <button onclick="abrirModalEditar('${c.id}')" class="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">Editar</button>
-                            <button onclick="perguntarEliminarConta('${c.id}')" class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded-lg">Apagar</button>
+                            <button onclick="abrirModalEditar('${c.id}')" class="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg font-medium">Editar</button>
+                            <button onclick="perguntarEliminarConta('${c.id}')" class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded-lg font-medium">Apagar</button>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-2xl text-center text-xs">
-                        <div><span class="text-slate-400 block">Por Semana</span><strong class="text-indigo-600 text-sm">${formatarMoeda(valSem)}</strong></div>
+                        <div><span class="text-slate-400 block">Por ${labelPeriodo}</span><strong class="${tipo === 'semanal' ? 'text-indigo-600' : 'text-pink-600'} text-sm">${formatarMoeda(valPeriodo)}</strong></div>
                         <div><span class="text-slate-400 block">Restante</span><strong class="text-slate-700 text-sm">${formatarMoeda(valRest)}</strong></div>
                     </div>
                     <div class="text-xs">
-                        <div class="flex justify-between mb-1"><span>Progresso: <strong>${c.semanasPagas}/${c.semanasTotais}</strong></span><span>${pct}%</span></div>
-                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="bg-indigo-600 h-full" style="width: ${pct}%"></div></div>
+                        <div class="flex justify-between mb-1"><span>Progresso: <strong>${c.semanasPagas}/${c.semanasTotais} ${labelAbreviado}</strong></span><span>${pct}%</span></div>
+                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="${tipo === 'semanal' ? 'bg-indigo-600' : 'bg-pink-600'} h-full" style="width: ${pct}%"></div></div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="alterarPagamento('${c.id}', -1)" class="flex-1 bg-slate-100 py-2 rounded-xl text-xs font-bold">-1 Sem</button>
-                        <button onclick="alterarPagamento('${c.id}', 1)" class="flex-[2] bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold">+1 Semana Paga</button>
+                        <button onclick="alterarPagamento('${c.id}', -1)" class="flex-1 bg-slate-100 py-2 rounded-xl text-xs font-bold">-1 ${labelPeriodo.substring(0,3)}</button>
+                        <button onclick="alterarPagamento('${c.id}', 1)" class="flex-[2] ${tipo === 'semanal' ? 'bg-indigo-600' : 'bg-pink-600'} text-white py-2 rounded-xl text-xs font-bold">+1 ${labelPeriodo} Pago</button>
                     </div>`;
                 container.appendChild(card);
             });
@@ -173,20 +211,58 @@
 
         function alterarPagamento(id, delta) { const c = state.contas.find(x => x.id === id); if (c) { const n = c.semanasPagas + delta; if (n >= 0 && n <= c.semanasTotais) { c.semanasPagas = n; guardarDados(); atualizarResumos(); renderizarContas(); } } }
         function fecharModal() { document.getElementById('modal_conta').classList.add('hidden'); editandoId = null; }
-        function abrirModalAdicionar() { editandoId = null; document.getElementById('modal_titulo').innerText = "Adicionar Nova Conta"; document.getElementById('modal_nome').value = ""; document.getElementById('modal_total').value = ""; document.getElementById('modal_semanas').value = "52"; document.getElementById('modal_conta').classList.remove('hidden'); }
-        function abrirModalEditar(id) { const c = state.contas.find(x => x.id === id); if (c) { editandoId = id; document.getElementById('modal_titulo').innerText = "Editar Conta"; document.getElementById('modal_nome').value = c.nome; document.getElementById('modal_total').value = c.total; document.getElementById('modal_semanas').value = c.semanasTotais; document.getElementById('modal_conta').classList.remove('hidden'); } }
+        
+        function abrirModalAdicionar() { 
+            editandoId = null; 
+            document.getElementById('modal_titulo').innerText = "Adicionar Nova Conta"; 
+            document.getElementById('modal_nome').value = ""; 
+            document.getElementById('modal_total').value = ""; 
+            document.getElementById('modal_tipo').value = "semanal"; 
+            document.getElementById('modal_prazo').value = "12"; 
+            document.getElementById('modal_conta').classList.remove('hidden'); 
+        }
+        
+        function abrirModalEditar(id) { 
+            const c = state.contas.find(x => x.id === id); 
+            if (c) { 
+                editandoId = id; 
+                document.getElementById('modal_titulo').innerText = "Editar Conta"; 
+                document.getElementById('modal_nome').value = c.nome; 
+                document.getElementById('modal_total').value = c.total; 
+                document.getElementById('modal_tipo').value = c.tipo || "semanal"; 
+                document.getElementById('modal_prazo').value = c.semanasTotais; 
+                document.getElementById('modal_conta').classList.remove('hidden'); 
+            } 
+        }
         
         function salvarConta() {
-            const nome = document.getElementById('modal_nome').value.trim(), total = parseFloat(document.getElementById('modal_total').value) || 0, semanas = parseInt(document.getElementById('modal_semanas').value) || 52;
-            if (!nome || total <= 0 || semanas <= 0) { mostrarAlerta("Erro", "Preencha os campos corretamente."); return; }
-            if (editandoId) { const c = state.contas.find(x => x.id === editandoId); if (c) { c.nome = nome; c.total = total; c.semanasTotais = semanas; if (c.semanasPagas > semanas) c.semanasPagas = semanas; } }
-            else { state.contas.push({ id: Date.now().toString(), nome, total, semanasTotais: semanas, semanasPagas: 0 }); }
+            const nome = document.getElementById('modal_nome').value.trim(), 
+                  total = parseFloat(document.getElementById('modal_total').value) || 0, 
+                  tipo = document.getElementById('modal_tipo').value,
+                  prazo = parseInt(document.getElementById('modal_prazo').value) || 12;
+                  
+            if (!nome || total <= 0 || prazo <= 0) { mostrarAlerta("Erro", "Preencha os campos corretamente."); return; }
+            
+            if (editandoId) { 
+                const c = state.contas.find(x => x.id === editandoId); 
+                if (c) { 
+                    c.nome = nome; 
+                    c.total = total; 
+                    c.tipo = tipo;
+                    c.semanasTotais = prazo; 
+                    if (c.semanasPagas > prazo) c.semanasPagas = prazo; 
+                } 
+            }
+            else { 
+                state.contas.push({ id: Date.now().toString(), nome, total, tipo, semanasTotais: prazo, semanasPagas: 0 }); 
+            }
             guardarDados(); fecharModal(); atualizarResumos(); renderizarContas();
         }
+        
         function perguntarEliminarConta(id) { mostrarConfirmacao("Remover", "Deseja apagar?", () => { state.contas = state.contas.filter(x => x.id !== id); guardarDados(); atualizarResumos(); renderizarContas(); }); }
         function perguntarLimpezaTotal() { mostrarConfirmacao("Limpar tudo", "Apagar todas as contas?", () => { localStorage.removeItem('caixa_semanal_dados'); state = { contas: [] }; atualizarResumos(); renderizarContas(); }); }
         
-        function exportarBackup() { try { const blob = new Blob([JSON.stringify(state)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'backup.json'; a.click(); } catch (e) {} }
+        function exportarBackup() { try { const blob = new Blob([JSON.stringify(state)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'backup_caixa.json'; a.click(); } catch (e) {} }
         function importarBackup(ev) { const f = ev.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = function(e) { try { const d = JSON.parse(e.target.result); if (d && Array.isArray(d.contas)) { state = d; guardarDados(); atualizarResumos(); renderizarContas(); mostrarAlerta("Sucesso", "Backup carregado!"); } } catch(err){} }; r.readAsText(f); }
         
         carregarDados(); atualizarResumos(); renderizarContas();
